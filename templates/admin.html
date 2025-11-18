@@ -4,6 +4,11 @@
 <body>
   <h2>Admin Panel</h2>
   <div id="status-message" style="display: none;"></div>
+  <div id="confirm-message" style="display: none; border: 1px solid #ccc; padding: 10px; margin: 10px 0; background-color: #f9f9f9;">
+    <p>¿Estás seguro que quieres eliminar este usuario?</p>
+    <button id="confirm-yes" style="background-color: #dc3545; color: white; border: none; padding: 5px 10px; cursor: pointer; margin-right: 10px;">Sí</button>
+    <button id="confirm-no" style="background-color: #6c757d; color: white; border: none; padding: 5px 10px; cursor: pointer;">No</button>
+  </div>
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
       <ul>
@@ -121,38 +126,55 @@
         form.addEventListener('submit', function(e) {
           e.preventDefault();
 
-          if (!confirm('¿Estás seguro que quieres eliminar este usuario?')) {
-            return;
-          }
+          const confirmDiv = document.getElementById('confirm-message');
+          const confirmYes = document.getElementById('confirm-yes');
+          const confirmNo = document.getElementById('confirm-no');
 
-          const button = this.querySelector('button');
-          button.disabled = true;
-          button.textContent = 'Eliminando...';
+          confirmDiv.style.display = 'block';
 
-          const formData = new FormData(this);
-          const row = this.closest('tr');
+          confirmYes.onclick = () => {
+            confirmDiv.style.display = 'none';
 
-          fetch(this.action, {
-            method: 'POST',
-            body: formData,
-            headers: {
-              'X-Requested-With': 'XMLHttpRequest'
-            }
-          })
-          .then(response => response.json())
-          .then(data => {
-            if (data.success) {
-              // Remove the row from the table
-              row.remove();
-              // Show success message
-              statusDiv.textContent = data.message;
-              statusDiv.style.display = 'block';
-              statusDiv.className = 'success';
-              setTimeout(() => {
-                statusDiv.style.display = 'none';
-              }, 3000);
-            } else {
-              statusDiv.textContent = data.message;
+            const button = this.querySelector('button');
+            button.disabled = true;
+            button.textContent = 'Eliminando...';
+
+            const formData = new FormData(this);
+            const row = this.closest('tr');
+
+            fetch(this.action, {
+              method: 'POST',
+              body: formData,
+              headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+              }
+            })
+            .then(response => response.json())
+            .then(data => {
+              if (data.success) {
+                // Remove the row from the table
+                row.remove();
+                // Show success message
+                statusDiv.textContent = data.message;
+                statusDiv.style.display = 'block';
+                statusDiv.className = 'success';
+                setTimeout(() => {
+                  statusDiv.style.display = 'none';
+                }, 3000);
+              } else {
+                statusDiv.textContent = data.message;
+                statusDiv.style.display = 'block';
+                statusDiv.className = 'error';
+                setTimeout(() => {
+                  statusDiv.style.display = 'none';
+                }, 5000);
+                button.disabled = false;
+                button.textContent = 'Eliminar';
+              }
+            })
+            .catch(error => {
+              console.error('Error:', error);
+              statusDiv.textContent = 'Error al eliminar usuario';
               statusDiv.style.display = 'block';
               statusDiv.className = 'error';
               setTimeout(() => {
@@ -160,19 +182,12 @@
               }, 5000);
               button.disabled = false;
               button.textContent = 'Eliminar';
-            }
-          })
-          .catch(error => {
-            console.error('Error:', error);
-            statusDiv.textContent = 'Error al eliminar usuario';
-            statusDiv.style.display = 'block';
-            statusDiv.className = 'error';
-            setTimeout(() => {
-              statusDiv.style.display = 'none';
-            }, 5000);
-            button.disabled = false;
-            button.textContent = 'Eliminar';
-          });
+            });
+          };
+
+          confirmNo.onclick = () => {
+            confirmDiv.style.display = 'none';
+          };
         });
       });
     });
