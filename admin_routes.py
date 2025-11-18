@@ -157,3 +157,48 @@ def toggle_access(user_id):
         flash(message, "error")
 
     return redirect(url_for('admin.admin_panel'))
+
+@admin_bp.route("/delete_user/<user_id>", methods=["POST"])
+@require_admin
+def delete_user(user_id):
+    # Validate user exists
+    user = validate_user_exists(user_id)
+    if not user:
+        if request.headers.get('Content-Type') == 'application/json' or request.is_json:
+            return jsonify({"success": False, "message": "Usuario no encontrado"}), 404
+        flash("Usuario no encontrado", "error")
+        return redirect(url_for('admin.admin_panel'))
+
+    # Confirm deletion with user details
+    user_name = user.get("nombre", "Usuario desconocido")
+    user_cedula = decrypt_user_cedulas([user])[0].get("cedula_descifrada", "Cédula no disponible")
+
+    # Double confirmation for deletion
+    if request.headers.get('Content-Type') == 'application/json' or request.is_json:
+        # For AJAX requests, assume confirmation is handled on frontend
+        pass
+    else:
+        # For form submissions, we rely on frontend confirmation
+
+    try:
+        # Delete user from database
+        supabase.table("usuarios").delete().eq("id", user_id).execute()
+
+        # Log the deletion
+        log_security_event("admin_delete_user", {
+            "deleted_user_id": user_id,
+            "deleted_user_name": user_name,
+            "deleted_user_cedula": user_cedula
+        })
+
+        if request.headers.get('Content-Type') == 'application/json' or request.is_json:
+            return jsonify({"success": True, "message": f"Usuario {user_name} eliminado exitosamente"})
+        flash(f"Usuario {user_name} eliminado exitosamente", "success")
+
+    except Exception as e:
+        log_security_event("user_deletion_error", {"user_id": user_id, "error": str(e)})
+        if request.headers.get('Content-Type') == 'application/json' or request.is_json:
+            return jsonify({"success": False, "message": "Error al eliminar usuario"}), 500
+        flash("Error al eliminar usuario", "error")
+
+    return redirect(url_for('admin.admin_panel'))

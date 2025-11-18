@@ -25,15 +25,18 @@
     <p><a href="{{ url_for('logout') }}">Cerrar sesión admin</a></p>
     <h3>Estudiantes</h3>
     <table border="1">
-      <tr><th>Nombre</th><th>Cédula</th><th>Acceso</th><th>Acción</th></tr>
+      <tr><th>Nombre</th><th>Cédula</th><th>Acceso</th><th>Acciones</th></tr>
       {% for u in users %}
       <tr data-user-id="{{ u.id }}">
         <td>{{ u.nombre }}</td>
         <td>{{ u.cedula_descifrada }}</td>
         <td class="access-status">{{ u.tiene_acceso }}</td>
         <td>
-          <form method="post" action="{{ url_for('admin.toggle_access', user_id=u.id) }}" class="toggle-form">
+          <form method="post" action="{{ url_for('admin.toggle_access', user_id=u.id) }}" class="toggle-form" style="display: inline;">
             <button type="submit">{{ "Retirar" if u.tiene_acceso else "Dar acceso" }}</button>
+          </form>
+          <form method="post" action="{{ url_for('admin.delete_user', user_id=u.id) }}" class="delete-form" style="display: inline; margin-left: 10px;">
+            <button type="submit" style="background-color: #dc3545; color: white; border: none; padding: 5px 10px; cursor: pointer;">Eliminar</button>
           </form>
         </td>
       </tr>
@@ -43,10 +46,12 @@
 
   <script>
     document.addEventListener('DOMContentLoaded', function() {
-      const forms = document.querySelectorAll('.toggle-form');
+      const toggleForms = document.querySelectorAll('.toggle-form');
+      const deleteForms = document.querySelectorAll('.delete-form');
       const statusDiv = document.getElementById('status-message');
 
-      forms.forEach(form => {
+      // Handle toggle access forms
+      toggleForms.forEach(form => {
         form.addEventListener('submit', function(e) {
           e.preventDefault();
 
@@ -107,6 +112,69 @@
           })
           .finally(() => {
             button.disabled = false;
+          });
+        });
+      });
+
+      // Handle delete user forms
+      deleteForms.forEach(form => {
+        form.addEventListener('submit', function(e) {
+          e.preventDefault();
+
+          const row = this.closest('tr');
+          const userName = row.cells[0].textContent; // Nombre from first column
+          const userCedula = row.cells[1].textContent; // Cédula from second column
+
+          if (!confirm(`¿Estás ABSOLUTAMENTE seguro de que quieres ELIMINAR permanentemente al usuario "${userName}" con cédula "${userCedula}"?\n\nEsta acción NO se puede deshacer.`)) {
+            return;
+          }
+
+          const button = this.querySelector('button');
+          button.disabled = true;
+          button.textContent = 'Eliminando...';
+
+          const formData = new FormData(this);
+
+          fetch(this.action, {
+            method: 'POST',
+            body: formData,
+            headers: {
+              'X-Requested-With': 'XMLHttpRequest'
+            }
+          })
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              // Remove the row from the table
+              row.remove();
+              // Show success message
+              statusDiv.textContent = data.message;
+              statusDiv.style.display = 'block';
+              statusDiv.className = 'success';
+              setTimeout(() => {
+                statusDiv.style.display = 'none';
+              }, 3000);
+            } else {
+              statusDiv.textContent = data.message;
+              statusDiv.style.display = 'block';
+              statusDiv.className = 'error';
+              setTimeout(() => {
+                statusDiv.style.display = 'none';
+              }, 5000);
+              button.disabled = false;
+              button.textContent = 'Eliminar';
+            }
+          })
+          .catch(error => {
+            console.error('Error:', error);
+            statusDiv.textContent = 'Error al eliminar usuario';
+            statusDiv.style.display = 'block';
+            statusDiv.className = 'error';
+            setTimeout(() => {
+              statusDiv.style.display = 'none';
+            }, 5000);
+            button.disabled = false;
+            button.textContent = 'Eliminar';
           });
         });
       });
