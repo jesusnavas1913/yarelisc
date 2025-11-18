@@ -24,12 +24,12 @@
   {% else %}
     <p><a href="{{ url_for('logout') }}">Cerrar sesión admin</a></p>
     <h3>Estudiantes</h3>
-    <table border="1">
-      <tr><th>Nombre</th><th>Cédula</th><th>Acceso</th><th>Acciones</th></tr>
+    <table border="1" style="border-collapse: collapse;">
+      <tr><th>Nombre</th><th style="display: none;">Cédula</th><th>Acceso</th><th>Acciones</th></tr>
       {% for u in users %}
       <tr data-user-id="{{ u.id }}">
         <td>{{ u.nombre }}</td>
-        <td>{{ u.cedula_descifrada }}</td>
+        <td style="display: none;">{{ u.cedula_descifrada }}</td>
         <td class="access-status">{{ u.tiene_acceso }}</td>
         <td>
           <form method="post" action="{{ url_for('admin.toggle_access', user_id=u.id) }}" class="toggle-form" style="display: inline;">
@@ -121,11 +121,7 @@
         form.addEventListener('submit', function(e) {
           e.preventDefault();
 
-          const row = this.closest('tr');
-          const userName = row.cells[0].textContent; // Nombre from first column
-          const userCedula = row.cells[1].textContent; // Cédula from second column
-
-          if (!confirm(`¿Estás ABSOLUTAMENTE seguro de que quieres ELIMINAR permanentemente al usuario "${userName}" con cédula "${userCedula}"?\n\nEsta acción NO se puede deshacer.`)) {
+          if (!confirm('¿Estás seguro que quieres eliminar este usuario?')) {
             return;
           }
 
@@ -134,6 +130,7 @@
           button.textContent = 'Eliminando...';
 
           const formData = new FormData(this);
+          const row = this.closest('tr');
 
           fetch(this.action, {
             method: 'POST',

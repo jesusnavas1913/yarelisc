@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, session, flash, redirect, url_for, request
+from flask import Blueprint, render_template, session, flash, redirect, url_for, request, jsonify
 from forms import AdminLoginForm
 from security import require_admin, log_security_event
 from encryption import decrypt_text
@@ -179,6 +179,7 @@ def delete_user(user_id):
         pass
     else:
         # For form submissions, we rely on frontend confirmation
+        pass
 
     try:
         # Delete user from database
